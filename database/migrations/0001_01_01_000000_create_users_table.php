@@ -4,8 +4,14 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class () extends Migration {
+    /**
+     * Set this to false to prevent the migration from running inside a database transaction.
+     * This is crucial for fixing 'current transaction is aborted' errors on PostgreSQL
+     * when creating tables with unique constraints.
+     */
+    public $transactions = false;
+
     /**
      * Run the migrations.
      */
