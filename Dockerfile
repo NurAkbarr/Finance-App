@@ -3,12 +3,16 @@ FROM node:18-alpine AS node_builder
 
 # Menginstal Node.js dan NPM
 WORKDIR /app
-COPY package.json package-lock.json ./
+# Copy package metadata (package-lock.json optional)
+COPY package*.json ./
 # Instal dependensi Node.js
 RUN npm install
+# Salin konfigurasi Vite/Tailwind (jika ada) sebelum build
+COPY vite.config.js ./
+COPY tailwind.config.js ./
+
+# Salin sumber daya frontend
 COPY resources/ /app/resources
-# HAPUS BARIS INI KARENA FILE TIDAK DITEMUKAN: 
-# COPY tailwind.config.js vite.config.js /app/
 
 # Kompilasi aset frontend
 RUN npm run build
