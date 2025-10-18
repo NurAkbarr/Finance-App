@@ -7,7 +7,8 @@ COPY package.json package-lock.json ./
 # Instal dependensi Node.js
 RUN npm install
 COPY resources/ /app/resources
-COPY tailwind.config.js vite.config.js /app/
+# HAPUS BARIS INI KARENA FILE TIDAK DITEMUKAN: 
+# COPY tailwind.config.js vite.config.js /app/
 
 # Kompilasi aset frontend
 RUN npm run build
