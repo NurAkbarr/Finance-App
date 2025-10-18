@@ -1,7 +1,22 @@
-# 1. BASE IMAGE: Menggunakan PHP FPM 8.2 (atau 8.3 jika tersedia)
+# STAGE 1: Build Image (untuk mengkompilasi aset Node.js)
+FROM node:18-alpine AS node_builder
+
+# Menginstal Node.js dan NPM
+WORKDIR /app
+COPY package.json package-lock.json ./
+# Instal dependensi Node.js
+RUN npm install
+COPY resources/ /app/resources
+COPY tailwind.config.js vite.config.js /app/
+
+# Kompilasi aset frontend
+RUN npm run build
+
+
+# STAGE 2: Production Image (untuk menjalankan PHP)
 FROM php:8.2-fpm-alpine
 
-# 2. INSTAL DEPENDENSI SISTEM
+# 1. INSTAL DEPENDENSI SISTEM
 # Perintah untuk menginstal sistem tools (git, unzip, dll.)
 RUN apk add --no-cache \
     git \
@@ -13,45 +28,41 @@ RUN apk add --no-cache \
     postgresql-dev \
     libxml2-dev
 
-# 3. INSTAL EKSTENSI PHP KRITIS (PERBAIKAN KRITIS)
-# Menginstal intl dan zip yang dibutuhkan oleh Filament dan paket lainnya.
+# 2. INSTAL EKSTENSI PHP KRITIS
 RUN docker-php-ext-install pdo_pgsql intl zip
 RUN docker-php-ext-enable pdo_pgsql
 
-# 4. INSTAL COMPOSER
-# Menginstal Composer secara global di dalam container
+# 3. INSTAL COMPOSER
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 5. ARGUMENTS & ENVIRONMENT
-# Menggunakan variabel lingkungan untuk konfigurasi Nginx dan Runtime
+# 4. ARGUMENTS & ENVIRONMENT
 ARG APP_ENV=production
 ENV APP_ENV=${APP_ENV}
 ENV PATH="./vendor/bin:$PATH"
 
-# 6. PENYIAPAN DIRECTORY KERJA
-# Mengatur direktori kerja di dalam container
+# 5. PENYIAPAN DIRECTORY KERJA
 WORKDIR /app
 
-# 7. SALIN KODE APLIKASI
+# 6. SALIN KODE APLIKASI
 # Menyalin kode aplikasi dan konfigurasi
 COPY . /app
 
+# 7. SALIN ASET YANG DIKOMPILASI (KRITIS)
+# Menyalin file yang dikompilasi dari Node Stage
+COPY --from=node_builder /app/public/build /app/public/build
+
 # 8. INSTAL DEPENDENSI VENDOR
-# Jalankan composer install --no-dev untuk production
 RUN composer install --no-dev --optimize-autoloader
 
-# 9. HAK AKSES (Untuk menjalankan aplikasi dengan user yang tidak memiliki root)
-# Memberi hak akses yang tepat ke direktori storage dan cache
+# 9. HAK AKSES
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
 RUN chmod -R 775 /app/storage /app/bootstrap/cache
 
 # 10. KONFIGURASI NGINX
-# Menyalin konfigurasi Nginx yang sudah dibuat
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 # 11. EXPOSE PORT
 EXPOSE 8080
 
 # 12. PERINTAH START
-# Perintah untuk menjalankan PHP FPM dan Nginx
 CMD sh -c "php-fpm && nginx -g 'daemon off;'"
