@@ -31,7 +31,9 @@ RUN apk add --no-cache \
     unzip \
     libzip-dev \
     postgresql-dev \
-    libxml2-dev
+    libxml2-dev \
+    nodejs \
+    npm
 
 # 2. INSTAL EKSTENSI PHP KRITIS
 RUN docker-php-ext-install pdo_pgsql intl zip
